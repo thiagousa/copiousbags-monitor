@@ -1,0 +1,21 @@
+services:
+  selenium:
+    image: seleniarm/standalone-chromium:latest
+    shm_size: "2gb"
+    ports:
+      - "4445:4444"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444/wd/hub/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  monitor:
+    build: .
+    depends_on:
+      selenium:
+        condition: service_healthy
+    env_file: .env
+    restart: unless-stopped
+    volumes:
+      - ./screenshots:/screenshots

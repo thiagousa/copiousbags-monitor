@@ -1,57 +1,110 @@
-REGISTRY  ?= docker.io/youruser
-IMAGE     ?= copiousbags-monitor
-VERSION   ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "latest")
-FULL_TAG   = $(REGISTRY)/$(IMAGE):$(VERSION)
-LATEST_TAG = $(REGISTRY)/$(IMAGE):latest
+COPIOUS_DIR = copious
+BLOOM_DIR   = bloom
 
-.PHONY: build up down logs check clean push release
+.PHONY: \
+	copious-build copious-up copious-down copious-logs copious-check copious-clean copious-image copious-push copious-release \
+	bloom-build   bloom-up   bloom-down   bloom-logs   bloom-check   bloom-clean   bloom-image   bloom-push   bloom-release \
+	up down logs clean
 
-## Build the monitor image
-build:
-	docker compose build
+# ──────────────────────────────────────────
+#  COPIOUS BAGS
+# ──────────────────────────────────────────
 
-## Start all services in the background
-up:
-	docker compose up -d
+## Build the copiousbags monitor image
+copious-build:
+	docker compose -f $(COPIOUS_DIR)/docker-compose.yml --project-directory $(COPIOUS_DIR) build
 
-## Stop all services
-down:
-	docker compose down
+## Start copiousbags monitor in the background
+copious-up:
+	docker compose -f $(COPIOUS_DIR)/docker-compose.yml --project-directory $(COPIOUS_DIR) up -d
 
-## Stream monitor logs
+## Stop copiousbags monitor
+copious-down:
+	docker compose -f $(COPIOUS_DIR)/docker-compose.yml --project-directory $(COPIOUS_DIR) down
+
+## Stream copiousbags monitor logs
+copious-logs:
+	docker compose -f $(COPIOUS_DIR)/docker-compose.yml --project-directory $(COPIOUS_DIR) logs -f monitor
+
+## Build + start + tail copiousbags logs
+copious-check:
+	docker compose -f $(COPIOUS_DIR)/docker-compose.yml --project-directory $(COPIOUS_DIR) up --build -d
+	docker compose -f $(COPIOUS_DIR)/docker-compose.yml --project-directory $(COPIOUS_DIR) logs -f monitor
+
+## Remove copiousbags containers and screenshots
+copious-clean:
+	docker compose -f $(COPIOUS_DIR)/docker-compose.yml --project-directory $(COPIOUS_DIR) down --remove-orphans
+	rm -f $(COPIOUS_DIR)/screenshots/*.png
+
+## Build and tag copiousbags image for registry
+copious-image:
+	docker build -t docker.io/thiagousa/copiousbags-monitor:latest $(COPIOUS_DIR)
+
+## Push copiousbags image to registry
+copious-push: copious-image
+	docker push docker.io/thiagousa/copiousbags-monitor:latest
+
+## Build, tag and push copiousbags in one step
+copious-release: copious-push
+	@echo "Released copiousbags-monitor"
+
+# ──────────────────────────────────────────
+#  BLOOM BIRTH STUDIO
+# ──────────────────────────────────────────
+
+## Build the bloom monitor image
+bloom-build:
+	docker compose -f $(BLOOM_DIR)/docker-compose.yml --project-directory $(BLOOM_DIR) build
+
+## Start bloom monitor in the background
+bloom-up:
+	docker compose -f $(BLOOM_DIR)/docker-compose.yml --project-directory $(BLOOM_DIR) up -d
+
+## Stop bloom monitor
+bloom-down:
+	docker compose -f $(BLOOM_DIR)/docker-compose.yml --project-directory $(BLOOM_DIR) down
+
+## Stream bloom monitor logs
+bloom-logs:
+	docker compose -f $(BLOOM_DIR)/docker-compose.yml --project-directory $(BLOOM_DIR) logs -f monitor
+
+## Build + start + tail bloom logs
+bloom-check:
+	docker compose -f $(BLOOM_DIR)/docker-compose.yml --project-directory $(BLOOM_DIR) up --build -d
+	docker compose -f $(BLOOM_DIR)/docker-compose.yml --project-directory $(BLOOM_DIR) logs -f monitor
+
+## Remove bloom containers and screenshots
+bloom-clean:
+	docker compose -f $(BLOOM_DIR)/docker-compose.yml --project-directory $(BLOOM_DIR) down --remove-orphans
+	rm -f $(BLOOM_DIR)/screenshots/*.png
+
+## Build and tag bloom image for registry
+bloom-image:
+	docker build -t docker.io/thiagousa/bloombirthstudio-monitor:latest $(BLOOM_DIR)
+
+## Push bloom image to registry
+bloom-push: bloom-image
+	docker push docker.io/thiagousa/bloombirthstudio-monitor:latest
+
+## Build, tag and push bloom in one step
+bloom-release: bloom-push
+	@echo "Released bloombirthstudio-monitor"
+
+# ──────────────────────────────────────────
+#  BOTH SITES
+# ──────────────────────────────────────────
+
+## Start both monitors
+up: copious-up bloom-up
+
+## Stop both monitors
+down: copious-down bloom-down
+
+## Stream logs for both monitors (requires tmux or two terminals)
 logs:
-	docker compose logs -f monitor
+	@echo "Run in separate terminals:"
+	@echo "  make copious-logs"
+	@echo "  make bloom-logs"
 
-## Run a one-off check (starts services if needed, tails logs until exit)
-check:
-	docker compose up --build -d
-	docker compose logs -f monitor
-
-## Remove stopped containers and stale screenshots
-clean:
-	docker compose down --remove-orphans
-	rm -f screenshots/*.png
-
-## Build and tag the monitor image for the registry
-image:
-	docker build -t $(FULL_TAG) -t $(LATEST_TAG) .
-	@echo "Tagged: $(FULL_TAG)"
-	@echo "Tagged: $(LATEST_TAG)"
-
-## Push versioned and latest tags to the registry
-push: image
-	docker push $(FULL_TAG)
-	docker push $(LATEST_TAG)
-
-## Build, tag and push in one step
-release: push
-	@echo "Released $(FULL_TAG)"
-
-## Pull and run the monitor from the registry (no local build needed)
-run:
-	docker pull $(LATEST_TAG)
-	docker run -d --name copiousbags-monitor \
-		--env-file .env \
-		-v $(PWD)/screenshots:/screenshots \
-		--network host \
-		$(LATEST_TAG)
+## Clean both monitors
+clean: copious-clean bloom-clean

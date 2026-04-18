@@ -1,0 +1,10 @@
+.env
+screenshots/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.tar
+.DS_Store
+Thumbs.db
