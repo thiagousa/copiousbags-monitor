@@ -1,0 +1,19 @@
+# Environment
+.env
+
+# Screenshots
+screenshots/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Docker
+*.tar
+
+# OS
+.DS_Store
+Thumbs.db
